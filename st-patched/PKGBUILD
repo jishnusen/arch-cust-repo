@@ -1,7 +1,7 @@
 pkgname=st-patched
 pkgname_=st
 pkgver=0.8.5
-pkgrel=1
+pkgrel=2
 pkgdesc='A simple virtual terminal emulator for X.'
 arch=('i686' 'x86_64' 'armv7h' 'aarch64')
 license=('MIT')
@@ -32,13 +32,11 @@ prepare() {
   echo '
 --- Makefile	2022-01-07 03:41:35.000000000 -0800
 +++ Makefile	2024-03-19 16:25:07.924852711 -0700
-@@ -47,7 +47,8 @@
+@@ -47,7 +47,6 @@
  	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
  	sed "s/VERSION/$(VERSION)/g" < st.1 > $(DESTDIR)$(MANPREFIX)/man1/st.1
  	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/st.1
 -	tic -sx st.info
-+	mkdir -p $(DESTDIR)$(PREFIX)/share/terminfo
-+	tic -o $(DESTDIR)$(PREFIX)/share/terminfo -sx st.info
  	@echo Please see the README file regarding the terminfo entry of st.
 
  uninstall:
