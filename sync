@@ -1,0 +1,8 @@
+#!/bin/sh
+
+queue=$(mktemp)
+
+find . -mindepth 2 -maxdepth 2 -name PKGBUILD -execdir sh -c 'makepkg --printsrcinfo > .SRCINFO' \;
+aur graph */.SRCINFO | tsort | tac > $queue
+aur build -csa $queue
+
