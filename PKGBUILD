@@ -1,0 +1,55 @@
+pkgname=st-patched
+pkgname_=st
+pkgver=0.8.5
+pkgrel=2
+pkgdesc='A simple virtual terminal emulator for X.'
+arch=('i686' 'x86_64' 'armv7h' 'aarch64')
+license=('MIT')
+depends=(libxft)
+url=https://st.suckless.org
+source=(https://dl.suckless.org/$pkgname_/$pkgname_-$pkgver.tar.gz
+        https://st.suckless.org/patches/scrollback/st-scrollback-0.8.5.diff
+        https://st.suckless.org/patches/scrollback/st-scrollback-reflow-0.8.5.diff
+        https://st.suckless.org/patches/scrollback/st-scrollback-mouse-20220127-2c5edf2.diff
+        https://st.suckless.org/patches/scrollback/st-scrollback-mouse-altscreen-20220127-2c5edf2.diff
+        https://st.suckless.org/patches/xresources-with-reload-signal/st-xresources-signal-reloading-20220407-ef05519.diff
+        )
+sha256sums=('ea6832203ed02ff74182bcb8adaa9ec454c8f989e79232cb859665e2f544ab37'
+            'dc7f5223b26fc813d91d4ae35bdaa54d63024cae9f18afd9b3594ba3399dfa55'
+            '37a6bbaf77e2657c06e0b34e59980adf56aa402d7316ddb96a24764a742bbb24'
+            '46ac9bcdbfeb0011533207cb0ab31657a3eb9196da1d0db346e6a9d1fc4b4f76'
+            '8f2f17683f12d57b1c80461247fe15234f5f5a6fc52cdf48176c8358e699101d'
+            '89e447a2f7b14db1fa33819ed6ea70096f7e3b68cba54b3e159b8db2b50e4bc2'
+            )
+_sourcedir=$pkgname_-$pkgver
+
+prepare() {
+  patch -d "$_sourcedir" -p 1 < st-scrollback-0.8.5.diff
+  patch -d "$_sourcedir" -p 1 < st-scrollback-reflow-0.8.5.diff
+  patch -d "$_sourcedir" -p 1 < st-scrollback-mouse-20220127-2c5edf2.diff
+  patch -d "$_sourcedir" -p 1 < st-scrollback-mouse-altscreen-20220127-2c5edf2.diff
+  patch -d "$_sourcedir" -p 1 < st-xresources-signal-reloading-20220407-ef05519.diff
+  echo '
+--- Makefile	2022-01-07 03:41:35.000000000 -0800
++++ Makefile	2024-03-19 16:25:07.924852711 -0700
+@@ -47,7 +47,6 @@
+ 	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
+ 	sed "s/VERSION/$(VERSION)/g" < st.1 > $(DESTDIR)$(MANPREFIX)/man1/st.1
+ 	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/st.1
+-	tic -sx st.info
+ 	@echo Please see the README file regarding the terminfo entry of st.
+
+ uninstall:
+ ' | patch -d "$_sourcedir" -p0
+}
+
+build() {
+  make -C "$_sourcedir" X11INC=/usr/include/X11 X11LIB=/usr/lib/X11
+}
+
+package() {
+  local shrdir="$pkgdir/usr/share"
+  make -C "$_sourcedir" PREFIX=/usr DESTDIR="$pkgdir" install
+  install -D -m 0644 -t "$shrdir/licenses/$pkgname_" "$_sourcedir/LICENSE"
+  install -D -m 0644 -t "$shrdir/doc/$pkgname" "$_sourcedir/README"
+}
