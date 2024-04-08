@@ -20,22 +20,22 @@ index 01a6d06..eb433af 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -4,7 +4,7 @@
- 
+
  include config.mk
- 
+
 -SRC = st.c x.c
 +SRC = st.c x.c boxdraw.c
  OBJ = $(SRC:.c=.o)
- 
+
  all: options st
 @@ -23,6 +23,7 @@ config.h:
- 
+
  st.o: config.h st.h win.h
  x.o: arg.h config.h st.h win.h
 +boxdraw.o: config.h st.h boxdraw_data.h
- 
+
  $(OBJ): config.h config.mk
- 
+
 diff --git a/boxdraw.c b/boxdraw.c
 new file mode 100644
 index 0000000..28a92d0
@@ -463,7 +463,7 @@ index c223706..43e233b 100644
 @@ -67,6 +67,18 @@ static unsigned int blinktimeout = 800;
   */
  static unsigned int cursorthickness = 2;
- 
+
 +/*
 + * 1: render most of the lines/blocks characters without using the font for
 + *    perfect alignment between cells (U2500 - U259F except dashes/diagonals).
@@ -483,7 +483,7 @@ diff --git a/st.c b/st.c
 index 6f9cd64..3cac85d 100644
 --- a/st.c
 +++ b/st.c
-@@ -1453,6 +1453,9 @@ tsetchar(Rune u, const Glyph *attr, int x, int y)
+@@ -1453,4 +1453,7 @@ tsetchar(Rune u, const Glyph *attr, int x, int y)
  	term.line[y][x] = *attr;
  	term.line[y][x].u = u;
  	term.line[y][x].mode |= ATTR_SET;
@@ -491,17 +491,6 @@ index 6f9cd64..3cac85d 100644
 +	if (isboxdraw(u))
 +		term.line[y][x].mode |= ATTR_BOXDRAW;
  }
- 
- void
-@@ -1946,7 +1949,7 @@ csihandle(void)
-       }
- 			/* vte does this:
- 			tscrollup(0, term.row-1, term.row, SCROLL_SAVEHIST); */
--      
-+
- 			/* alacritty does this: */
- 			for (n = term.row-1; n >= 0 && tlinelen(term.line[n]) == 0; n--);
- 			if (n >= 0)
 diff --git a/st.h b/st.h
 index 1228ac5..ec9ece4 100644
 --- a/st.h
@@ -513,11 +502,11 @@ index 1228ac5..ec9ece4 100644
 +	ATTR_BOXDRAW    = 1 << 13,
  	ATTR_BOLD_FAINT = ATTR_BOLD | ATTR_FAINT,
  };
- 
+
 @@ -119,6 +120,14 @@ char *xstrdup(const char *);
- 
+
  int xgetcolor(int x, unsigned char *r, unsigned char *g, unsigned char *b);
- 
+
 +int isboxdraw(Rune);
 +ushort boxdrawindex(const Glyph *);
 +#ifdef XFT_VERSION
@@ -529,10 +518,10 @@ index 1228ac5..ec9ece4 100644
  /* config.h globals */
  extern char *utmp;
  extern char *scroll;
-@@ -132,3 +141,4 @@ extern unsigned int tabspaces;
- extern unsigned int defaultfg;
- extern unsigned int defaultbg;
- extern unsigned int defaultcs;
+@@ -132,3 +141,4 @@ extern char *urlhandler;
+ extern char urlchars[];
+ extern char *urlprefixes[];
+ extern int nurlprefixes;
 +extern const int boxdraw, boxdraw_bold, boxdraw_braille;
 diff --git a/x.c b/x.c
 index a6bb6d2..73ecfff 100644
@@ -545,12 +534,12 @@ index a6bb6d2..73ecfff 100644
 +
 +	boxdraw_xinit(xw.dpy, xw.cmap, xw.draw, xw.vis);
  }
- 
+
  int
 @@ -1270,8 +1272,13 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  			yp = winy + font->ascent;
  		}
- 
+
 -		/* Lookup character index with default font. */
 -		glyphidx = XftCharIndex(xw.dpy, font->match, rune);
 +		if (mode & ATTR_BOXDRAW) {
@@ -566,7 +555,7 @@ index a6bb6d2..73ecfff 100644
 @@ -1475,8 +1482,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
  	r.width = width;
  	XftDrawSetClipRectangles(xw.draw, winx, winy, &r, 1);
- 
+
 -	/* Render the glyphs. */
 -	XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
 +	if (base.mode & ATTR_BOXDRAW) {
@@ -575,7 +564,7 @@ index a6bb6d2..73ecfff 100644
 +		/* Render the glyphs. */
 +		XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
 +	}
- 
+
  	/* Render underline and strikethrough. */
  	if (base.mode & ATTR_UNDERLINE) {
 @@ -1519,7 +1530,7 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
@@ -584,9 +573,9 @@ index a6bb6d2..73ecfff 100644
  	 */
 -	g.mode &= ATTR_BOLD|ATTR_ITALIC|ATTR_UNDERLINE|ATTR_STRUCK|ATTR_WIDE;
 +	g.mode &= ATTR_BOLD|ATTR_ITALIC|ATTR_UNDERLINE|ATTR_STRUCK|ATTR_WIDE|ATTR_BOXDRAW;
- 
+
  	if (IS_SET(MODE_REVERSE)) {
  		g.mode |= ATTR_REVERSE;
--- 
+--
 2.44.0
 
