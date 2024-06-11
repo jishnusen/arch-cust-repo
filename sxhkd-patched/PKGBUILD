@@ -1,0 +1,30 @@
+_pkgname=sxhkd
+pkgname=${_pkgname}-patched
+pkgver=0.6.2
+pkgrel=1
+pkgdesc='A simple X hotkey daemon'
+arch=('i686' 'x86_64' 'armv7h')
+url="https://github.com/baskerville/${_pkgname}"
+license=('custom:BSD')
+depends=('libxcb' 'xcb-util-keysyms')
+makedepends=('git' 'xcb-util')
+provides=("${_pkgname}")
+conflicts=("${_pkgname}")
+source=("https://github.com/baskerville/sxhkd/archive/refs/tags/${pkgver}.tar.gz"
+        "https://github.com/baskerville/sxhkd/commit/6a427faf950fc667d38b92c8a0568ca21c5395db.diff")
+sha256sums=("1edc8b1a8b3631c10ba9cb9df1181830dacbbdf77adb558e31d5dd2029637386"
+            "ca88a70c36c6a3520f1592a8fe609f51f0c0dc5d730f79197f719dc11a9c7cea")
+_sourcedir=$_pkgname-$pkgver
+
+prepare() {
+  patch -d "$_sourcedir" -p 1 < 6a427faf950fc667d38b92c8a0568ca21c5395db.diff
+}
+
+build() {
+  make -C "$_sourcedir" PREFIX=/usr
+}
+
+package() {
+  make -C "$_sourcedir" PREFIX=/usr DESTDIR="$pkgdir" install
+  install -D -m644 "$_sourcedir/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
